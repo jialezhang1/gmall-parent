@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper SYSTEM "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--namespace ： 接口全路径-->
+<mapper namespace="com.atguigu.gmall.product.mapper.SpuSaleAttrMapper">
+    <!--
+        返回关系映射
+    -->
+    <resultMap id="SpuSaleAttrMap" type="com.atguigu.gmall.model.product.SpuSaleAttr" autoMapping="true">
+        <!--
+            主键Id
+        -->
+        <id property="id" column="id"></id>
+        <!--
+            1:n
+        -->
+        <collection property="spuSaleAttrValueList" ofType="com.atguigu.gmall.model.product.SpuSaleAttrValue"
+                    autoMapping="true">
+            <id property="id" column="sale_attr_value_id"></id>
+        </collection>
+    </resultMap>
+
+    <!--定义sql 片段-->
+    <sql id="spuSql">
+        ssa.id,
+               ssa.spu_id,
+               ssa.base_sale_attr_id,
+               ssa.sale_attr_name,
+               ssav.id sale_attr_value_id,
+               ssav.sale_attr_value_name
+    </sql>
+
+    <!--执行sql 语句-->
+    <select id="selectSpuSaleAttrList" resultMap="SpuSaleAttrMap">
+        select
+        <include refid="spuSql"></include>
+        from  spu_sale_attr ssa inner  join  spu_sale_attr_value ssav
+        on ssa.spu_id = ssav.spu_id and ssa.base_sale_attr_id = ssav.base_sale_attr_id
+        where ssa.spu_id = #{spuId} and ssa.is_deleted = 0 and  ssav.is_deleted = 0
+    </select>
+
+    <!--根据spuId 获取销售属性销售属性值并锁定-->
+    <select id="selectSpuSaleAttrListCheckBySku" resultMap="SpuSaleAttrMap">
+        select
+        <include refid="spuSql"></include>,
+        sv.sku_id,
+        if(sv.sku_id is null,0,1) is_checked
+        from spu_sale_attr ssa inner join spu_sale_attr_value ssav
+        on ssa.spu_id = ssav.spu_id and ssa.base_sale_attr_id = ssav.base_sale_attr_id
+        left join sku_sale_attr_value sv on sv.sale_attr_value_id = ssav.id and  sku_id = #{skuId}
+        where ssa.spu_id = #{spuId}
+        and ssa.is_deleted = 0
+        and ssav.is_deleted = 0
+        and (sv.is_deleted = 0 or sv.is_deleted is null)
+        order by ssav.base_sale_attr_id,ssav.id
+    </select>
+</mapper>
